@@ -2,7 +2,8 @@ from aiaccel.optimizer.abstract_optimizer import AbstractOptimizer
 
 from scipy.optimize import minimize
 import sys
-from multiprocessing import Process
+import threading
+import queue
 
 
 class ScipyOptimizer(AbstractOptimizer):
@@ -16,11 +17,13 @@ class ScipyOptimizer(AbstractOptimizer):
         self.study_name = "scipy_neldermead"
         self.resume_objectives = None
 
-        # TODO: get initial
         self.create_numpy_random_generator()
         initial_params = [param['value'] for param in self.params.sample(initial=True, rng=self._rng)]
+        self.result_queue = queue.Queue()
+        self.running_trial_id = None
 
-        self.scipy_process = Process(
+        # thread
+        self.scipy_thread = threading.Thread(
             target=minimize,
             args=(self.objective_function, initial_params,),
             kwargs={
@@ -45,10 +48,10 @@ class ScipyOptimizer(AbstractOptimizer):
         # warning num_node > 1
 
     def objective_function(self, X):
-        trial_id = self.trial_id.get()
+        self.running_trial_id = self.trial_id.get()
 
         # finish process
-        if trial_id >= self.config.trial_number.get():
+        if self.running_trial_id >= self.config.trial_number.get():
             sys.exit()
 
         # for resume
@@ -69,10 +72,8 @@ class ScipyOptimizer(AbstractOptimizer):
         self.trial_id.increment()
         self._serialize(self.trial_id.integer)
 
-        objective = self.storage.result.get_any_trial_objective(trial_id)
         # wait
-        while objective is None:
-            objective = self.storage.result.get_any_trial_objective(trial_id)
+        objective = self.result_queue.get(block=True, timeout=None)
 
         return objective
 
@@ -83,24 +84,32 @@ class ScipyOptimizer(AbstractOptimizer):
 
         self.parameter_list = self.params.get_parameter_list()
         self.resume_objectives = self.storage.result.get_objectives()
-        self.scipy_process.start()
+        self.scipy_thread.start()
 
     def post_process(self) -> None:
         """Post-procedure after executed processes.
         """
         super().post_process()
-        self.scipy_process.kill()
+        # finish thread
+        self.scipy_thread.join(timeout=0)
 
     def inner_loop_main_process(self) -> bool:
+        # check result
+        objective = self.storage.result.get_any_trial_objective(self.running_trial_id)
+        if objective is not None:
+            self.running_trial_id = None
+            self.result_queue.put(objective, block=True, timeout=None)
+
         if self.check_finished():
             return False
 
-        if not self.scipy_process.is_alive():
+        if not self.scipy_thread.is_alive():
             return False
 
         return True
 
     def __getstate__(self):
         obj = super().__getstate__()
-        del obj['scipy_process']
+        del obj['scipy_thread']
+        del obj['result_queue']
         return obj
