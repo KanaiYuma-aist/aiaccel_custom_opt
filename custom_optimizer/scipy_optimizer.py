@@ -17,47 +17,39 @@ class ScipyOptimizer(AbstractOptimizer):
         self.study_name = "scipy_neldermead"
         self.resume_objectives = None
 
-        self.create_numpy_random_generator()
-        initial_params = [param['value'] for param in self.params.sample(initial=True, rng=self._rng)]
-        self.result_queue = queue.Queue()
+        self.result_queue = queue.Queue(maxsize=0)
         self.running_trial_id = None
 
-        # thread
-        self.scipy_thread = threading.Thread(
-            target=minimize,
-            args=(self.objective_function, initial_params,),
-            kwargs={
-                # "method": "Nelder-Mead",  # 1.6900694629777868
-                "method": "CG",  # 0.021162316783674685
-                # "method": "BFGS", # 0.021162316778463867
-                # "method": "COBYLA", # 0.031714451215396365
-                # "method": "trust-constr", # 0.021162316778464106
-                # "method": "L-BFGS-B", # 0.021162316778463867
-                # "method": "TNC", # 0.08367154471697916
-                # "method": "SLSQP", # 0.021162316778463867
+        # optimize method in scipy.minimize
+        # self.method = "Nelder-Mead"
+        # self.method = "CG"
+        self.method = "BFGS"
+        # self.method = "COBYLA"
+        # self.method = "trust-constr"
+        # self.method = "L-BFGS-B"
+        # self.method = "TNC"
+        # self.method = "SLSQP"
 
-                # "method": "dogleg", #
-                # "method": "trust-ncg", #
-                # "method": "trust-exact", #
-                # "method": "trust-krylov", #
-                "tol": 0.0,
-                "options": {"maxiter": self.config.trial_number.get()}
-            }
-        )
+        # need additional option
+        # self.method = "dogleg"
+        # self.method = "trust-ncg"
+        # self.method = "trust-exact"
+        # self.method = "trust-krylov"
 
         # warning num_node > 1
 
     def objective_function(self, X):
-        self.running_trial_id = self.trial_id.get()
+        trial_id = self.trial_id.get()
 
         # finish process
-        if self.running_trial_id >= self.config.trial_number.get():
+        if trial_id >= self.config.trial_number.get():
             sys.exit()
 
         # for resume
         if len(self.resume_objectives) > 0:
             return self.resume_objectives.pop(0)
 
+        self.running_trial_id = trial_id
         new_params = []
 
         for i, param in enumerate(self.params.get_parameter_list()):
@@ -80,7 +72,28 @@ class ScipyOptimizer(AbstractOptimizer):
     def pre_process(self) -> None:
         """Pre-Procedure before executing optimize processes.
         """
-        self.resume()
+        super().pre_process()
+
+        resume_initial_params = self.storage.hp.get_any_trial_params(0)
+        if resume_initial_params is None:
+            # no resume
+            initial_params = [param['value'] for param in
+                              self.params.sample(initial=True, rng=self._rng)]
+        else:
+            # resume
+            initial_params = [param.param_value for param in resume_initial_params]
+
+        # thread of scipy.optimize
+        self.scipy_thread = threading.Thread(
+            target=minimize,
+            args=(self.objective_function, initial_params,),
+            kwargs={
+                "method": self.method,
+                "tol": 0.0,
+                "options": {"maxiter": self.config.trial_number.get()}
+            }
+        )
+        self.scipy_thread.daemon = True
 
         self.parameter_list = self.params.get_parameter_list()
         self.resume_objectives = self.storage.result.get_objectives()
@@ -98,7 +111,7 @@ class ScipyOptimizer(AbstractOptimizer):
         objective = self.storage.result.get_any_trial_objective(self.running_trial_id)
         if objective is not None:
             self.running_trial_id = None
-            self.result_queue.put(objective, block=True, timeout=None)
+            self.result_queue.put(objective)
 
         if self.check_finished():
             return False
