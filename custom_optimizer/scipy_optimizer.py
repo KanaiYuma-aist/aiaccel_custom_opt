@@ -17,13 +17,13 @@ class ScipyOptimizer(AbstractOptimizer):
         self.study_name = "scipy_neldermead"
         self.resume_objectives = None
 
-        self.result_queue = queue.Queue(maxsize=0)
+        self.result_queue = queue.Queue(maxsize=1)
         self.running_trial_id = None
 
         # optimize method in scipy.minimize
-        # self.method = "Nelder-Mead"
+        self.method = "Nelder-Mead"
         # self.method = "CG"
-        self.method = "BFGS"
+        # self.method = "BFGS"
         # self.method = "COBYLA"
         # self.method = "trust-constr"
         # self.method = "L-BFGS-B"
@@ -47,12 +47,13 @@ class ScipyOptimizer(AbstractOptimizer):
 
         # for resume
         if len(self.resume_objectives) > 0:
-            return self.resume_objectives.pop(0)
+            pop_result = self.resume_objectives.pop(0)
+            return pop_result
 
         self.running_trial_id = trial_id
         new_params = []
 
-        for i, param in enumerate(self.params.get_parameter_list()):
+        for i, param in enumerate(self.parameter_list):
             new_param = {
                 'parameter_name': param.name,
                 'type': param.type,
@@ -74,6 +75,10 @@ class ScipyOptimizer(AbstractOptimizer):
         """
         super().pre_process()
 
+        self.parameter_list = self.params.get_parameter_list()
+        self.resume_objectives = self.storage.result.get_objectives()
+        bounds = ([(param.lower, param.upper) for param in self.parameter_list])
+
         resume_initial_params = self.storage.hp.get_any_trial_params(0)
         if resume_initial_params is None:
             # no resume
@@ -89,14 +94,13 @@ class ScipyOptimizer(AbstractOptimizer):
             args=(self.objective_function, initial_params,),
             kwargs={
                 "method": self.method,
+                "bounds": bounds,
                 "tol": 0.0,
                 "options": {"maxiter": self.config.trial_number.get()}
             }
         )
         self.scipy_thread.daemon = True
 
-        self.parameter_list = self.params.get_parameter_list()
-        self.resume_objectives = self.storage.result.get_objectives()
         self.scipy_thread.start()
 
     def post_process(self) -> None:
@@ -111,7 +115,7 @@ class ScipyOptimizer(AbstractOptimizer):
         objective = self.storage.result.get_any_trial_objective(self.running_trial_id)
         if objective is not None:
             self.running_trial_id = None
-            self.result_queue.put(objective)
+            self.result_queue.put(objective, block=True, timeout=None)
 
         if self.check_finished():
             return False
@@ -125,4 +129,5 @@ class ScipyOptimizer(AbstractOptimizer):
         obj = super().__getstate__()
         del obj['scipy_thread']
         del obj['result_queue']
+        del obj['running_trial_id']
         return obj
