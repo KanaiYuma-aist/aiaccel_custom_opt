@@ -157,24 +157,22 @@ class CmaEsNormalizeOptimizer(AbstractOptimizer):
         Returns:
             None
         """
-        import math
-        n_dim = len(self.parameter_list)
         if self.study is None:
-            # self.study = optuna.create_study(
-            #     sampler=CmaEsSamplerWrapper(seed=self.randseed),
-            #     study_name=self.study_name,
-            #     direction=self.config.goal.get().lower()
-            # )
             self.study = optuna.create_study(
-                sampler=CmaEsSamplerWrapper(seed=self.randseed,
-                                            popsize=10000,
-                                            # popsize=4 + math.floor(3 * math.log(n_dim)),
-                                            restart_strategy='ipop'),
+                sampler=CmaEsSamplerWrapper(seed=self.randseed),
                 study_name=self.study_name,
                 direction=self.config.goal.get().lower()
             )
-            # print("debug custom_optimizer/cma_es_normalize_optimizer.py")
-            # print(self.study.sampler._popsize)
+            # import math
+            # n_dim = len(self.parameter_list)
+            # self.study = optuna.create_study(
+            #     sampler=CmaEsSamplerWrapper(seed=self.randseed,
+            #                                 popsize=10000,
+            #                                 # popsize=4 + math.floor(3 * math.log(n_dim)),
+            #                                 restart_strategy='ipop'),
+            #     study_name=self.study_name,
+            #     direction=self.config.goal.get().lower()
+            # )
 
 
 class optuna_distribution:
@@ -197,20 +195,17 @@ class optuna_distribution:
         distributions = {}
 
         for p in parameters.get_parameter_list():
-            if p.type == 'FLOAT':
-                if p.log:
-                    distributions[p.name] = optuna.distributions.LogUniformDistribution(p.lower, p.upper)
-                else:
-                    distributions[p.name] = optuna.distributions.UniformDistribution(p.lower, p.upper)
+            if p.type.lower() == 'float':
+                distributions[p.name] = optuna.distributions.FloatDistribution(
+                    p.lower, p.upper, log=p.log
+                )
 
-            elif p.type == 'INT':
-                if p.log:
-                    distributions[p.name] = optuna.distributions.IntLogUniformDistribution(p.lower, p.upper)
-                else:
-                    distributions[p.name] = optuna.distributions.IntUniformDistribution(p.lower, p.upper)
-
+            elif p.type.lower() == 'int':
+                distributions[p.name] = optuna.distributions.IntDistribution(
+                    p.lower, p.upper, log=p.log
+                )
             else:
-                raise 'Unsupported parameter type'
+                raise TypeError('Unsupported parameter type')
 
         return distributions
 
@@ -220,20 +215,17 @@ class optuna_distribution:
         distributions = {}
 
         for p in parameters.get_parameter_list():
-            if p.type == 'FLOAT':
-                if p.log:
-                    distributions[p.name] = optuna.distributions.LogUniformDistribution(0.0, 1.0)
-                else:
-                    distributions[p.name] = optuna.distributions.UniformDistribution(0.0, 1.0)
+            if p.type.lower() == 'float':
+                distributions[p.name] = optuna.distributions.FloatDistribution(
+                    0.0, 1.0, log=p.log
+                )
 
-            elif p.type == 'INT':
-                if p.log:
-                    distributions[p.name] = optuna.distributions.LogUniformDistribution(0.0, 1.0)
-                else:
-                    distributions[p.name] = optuna.distributions.UniformDistribution(0.0, 1.0)
-
+            elif p.type.lower() == 'int':
+                distributions[p.name] = optuna.distributions.IntDistribution(
+                    0.0, 1.0, log=p.log
+                )
             else:
-                raise 'Unsupported parameter type'
+                raise TypeError('Unsupported parameter type')
 
         return distributions
 

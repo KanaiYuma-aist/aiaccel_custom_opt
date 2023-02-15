@@ -166,27 +166,33 @@ def create_distributions(
         parameters(aiaccel.parameter.HyperParameterConfiguration): A
             parameter configuration object.
 
+    Raises:
+        ValueError: Occurs when parameter type is other than 'float', 'int',
+            'categorical', or 'ordinal'.
+
     Returns:
         (dict): An optuna.distributions object.
     """
     distributions = {}
 
     for p in parameters.get_parameter_list():
-        if p.type == 'FLOAT':
-            if p.log:
-                distributions[p.name] = optuna.distributions.LogUniformDistribution(p.lower, p.upper)
-            else:
-                distributions[p.name] = optuna.distributions.UniformDistribution(p.lower, p.upper)
+        if p.type.lower() == 'float':
+            distributions[p.name] = optuna.distributions.FloatDistribution(
+                p.lower, p.upper, log=p.log
+            )
 
-        elif p.type == 'INT':
-            if p.log:
-                distributions[p.name] = optuna.distributions.IntLogUniformDistribution(p.lower, p.upper)
-            else:
-                distributions[p.name] = optuna.distributions.IntUniformDistribution(p.lower, p.upper)
+        elif p.type.lower() == 'int':
+            distributions[p.name] = optuna.distributions.IntDistribution(
+                p.lower, p.upper, log=p.log
+            )
 
-        elif p.type == 'CATEGORICAL':
+        elif p.type.lower() == 'categorical':
             distributions[p.name] = optuna.distributions.CategoricalDistribution(p.choices)
+
+        elif p.type.lower() == 'ordinal':
+            distributions[p.name] = optuna.distributions.CategoricalDistribution(p.sequence)
+
         else:
-            raise 'Unsupported parameter type'
+            raise TypeError('Unsupported parameter type')
 
     return distributions
