@@ -33,4 +33,5 @@ jobs:
 
       - name: Supplemental Test
         run: |
+          pip list
           pytest -v tests/supplements/optuna_test.py
