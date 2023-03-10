@@ -1,5 +1,3 @@
-from tests.base_test import BaseTest
-
 import optuna
 import random
 import numpy as np
