@@ -3,6 +3,7 @@ from tests.base_test import BaseTest
 import optuna
 import random
 import numpy as np
+import sys
 
 
 def f(x1, x2):
@@ -11,6 +12,7 @@ def f(x1, x2):
 
 
 def test_optuna():
+    print(sys.float_info)
     local_point = [
         [1.8727005942368125, 4.75357153204958],
         [3.6599697090570253, 2.993292420985183],
@@ -77,7 +79,7 @@ def test_optuna():
         t = study.ask(distributions)
         assert t.params["x1"] == local_point[i][0]
         assert t.params["x2"] == local_point[i][1]
-        objective = f(float(t.params["x1"]), float(t.params["x2"]))
+        objective = f(t.params["x1"], t.params["x2"])
         study.tell(t, objective)
         # print(t.params["x1"], t.params["x2"], objective)
         assert objective == local_result[i]
