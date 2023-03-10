@@ -52,7 +52,7 @@ def test_optuna():
 
     for i in range(20):
         t = study.ask(distributions)
-        objective = f(t.params["x1"], t.params["x2"])
+        objective = f(float(t.params["x1"]), float(t.params["x2"]))
         study.tell(t, objective)
         # print(t.params["x1"], t.params["x2"], objective)
         assert objective == local_result[i]
