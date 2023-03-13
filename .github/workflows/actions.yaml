@@ -23,6 +23,8 @@ jobs:
 
       - name: Install Software
         run: |
+          python -m venv work
+          source work/bin/activate
           python -m pip install --upgrade pip
           pip install optuna pytest
 
