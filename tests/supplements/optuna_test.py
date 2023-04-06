@@ -35,6 +35,7 @@ def test_optuna():
         local_study = pickle.load(f)
 
     for i in range(20):
+        print(i)
         t = study.ask(distributions)
         assert t.params["x1"] == local_study.trials[i].params["x1"]
         assert t.params["x2"] == local_study.trials[i].params["x2"]
