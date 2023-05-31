@@ -1,0 +1,11 @@
+name: 'Hello World'
+description: 'Hello world from github actions'
+inputs:
+  REPOSITORY: 
+    description: github repository name
+    required: true
+    default: ${{ github.repository }}
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

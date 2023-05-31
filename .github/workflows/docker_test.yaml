@@ -1,21 +1,12 @@
-name: Container
-on: push
+on: [push]
 
 jobs:
-  node-docker:
+  github_actions_sample:
     runs-on: ubuntu-latest
-    container: #起動するコンテナイメージを指定
-      image: node:13.5.0-alpine3.10 #指定のdockerイメージを使用
-    steps: #dockerコンテナ内でステップを実行
-      - name: Log node version
-        run: |
-          node -v #nodeバージョンの確認
-          cat /etc/os-release #Linuxバージョンの確認
+    steps:
+      - uses: actions/checkout@v2
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set Up 3.9
-        uses: actions/setup-python@v4
+      - name: Run github action using docker
+        uses: ./
         with:
-          python-version: '3.9'
+          REPOSITORY: ${{ github.repository }}
