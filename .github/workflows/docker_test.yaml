@@ -11,3 +11,12 @@ jobs:
         run: |
           node -v #nodeバージョンの確認
           cat /etc/os-release #Linuxバージョンの確認
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Up ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
