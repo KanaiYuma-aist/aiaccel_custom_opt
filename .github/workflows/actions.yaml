@@ -3,11 +3,11 @@ on: [push, pull_request]
 
 jobs:
   build-and-test:
-    # runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     # runs-on: ubuntu-18.04
-    runs-on:
-      group: ubuntu-runners
-      labels: ubuntu-20.04-16core
+    # runs-on:
+    #   group: ubuntu-runners
+    #   labels: ubuntu-20.04-16core
     strategy:
       matrix:
         #os: [ubuntu-latest, macos-latest, windows-latest]
