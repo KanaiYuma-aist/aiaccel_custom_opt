@@ -16,7 +16,7 @@ jobs:
             #     password: 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
             - name: Set up Docker
               run: |
-                  docker login -u kanaiyuma-aist -p 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
+                  docker login -u KanaiYuma-aist -p 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
                   docker pull ghcr.io/kanaiyuma-aist/test:latest
               # run: |
               #     docker pull ghcr.io/${OWNER,,}/python-test-env:latest
