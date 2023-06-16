@@ -12,8 +12,8 @@ jobs:
               uses: docker/login-action@v1.13.0
               with:
                 registry: ghcr.io
-                username: KanaiYuma-aist
-                password: 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
+                username: ${OWNER,,}
+                password: ${{ secrets.GHCR_PAT }}
             - name: Set up Docker
               run: |
                   docker pull ghcr.io/kanaiyuma-aist/test:latest
